@@ -2,7 +2,14 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware 
-from app.routes.colleges import router
+from app.routes.colleges import router as college_router
+from app.routes.students import router as students_router
+from app.routes.subjects import router as subjects_router
+from app.routes.grades import router as grades_router
+from app.routes.gpa import router as gpa_router
+from app.routes.auth import router as auth_router
+
+
 
 app = FastAPI()
 origins = [
@@ -18,7 +25,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router, prefix="/api")
+#app.include_router(college_router, prefix="/api/colleges")
+app.include_router(students_router, prefix="/api/students")
+app.include_router(subjects_router, prefix="/api/subjects")
+app.include_router(grades_router, prefix="/api/grades")
+app.include_router(gpa_router, prefix="/api/gpa")
+app.include_router(auth_router, prefix="/api/auth")
 
 @app.get("/")
 def root():
