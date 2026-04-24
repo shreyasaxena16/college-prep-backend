@@ -8,6 +8,7 @@ from app.routes.subjects import router as subjects_router
 from app.routes.grades import router as grades_router
 from app.routes.gpa import router as gpa_router
 from app.routes.auth import router as auth_router
+from app.routes.test import router as test_router
 
 
 
@@ -31,6 +32,7 @@ app.include_router(subjects_router, prefix="/api/subjects")
 app.include_router(grades_router, prefix="/api/grades")
 app.include_router(gpa_router, prefix="/api/gpa")
 app.include_router(auth_router, prefix="/api/auth")
+app.include_router(test_router, prefix="/api/test")
 
 @app.get("/")
 def root():
