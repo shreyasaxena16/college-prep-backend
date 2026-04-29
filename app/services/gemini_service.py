@@ -1,26 +1,45 @@
-import google.generativeai as genai
 import json
-import os
-
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
-model = genai.GenerativeModel("gemini-2.5-flash")
+import re
+from supabase import create_client
+from app.config import client
 
 
-def generate_questions(topic, difficulty):
+# ----------------------------
+# GENERATE QUESTIONS (AI)
+# ----------------------------
+def generate_questions(category: str, subcategory: str, difficulty: str, count: int = 10):
+    
     prompt = f"""
-    Generate 5 SAT {topic} questions ({difficulty})
+Generate {count} MCQ questions.
 
-    Return JSON:
-    [
-      {{
-        "question": "...",
-        "options": {{"A":"...","B":"...","C":"...","D":"..."}},
-        "answer": "A",
-        "explanation": "..."
-      }}
-    ]
-    """
+Category: {category}
+Subcategory: {subcategory}
+Difficulty: {difficulty}
 
-    response = model.generate_content(prompt)
-    return json.loads(response.text)
+Return JSON only with fields:
+- question
+- options
+- correct_answer
+- explanation
+- category
+- subcategory
+- difficulty
+"""
+
+    response = client.models.generate_content(
+        model="models/gemini-2.5-flash",
+        contents=prompt
+    )
+
+    text = response.text
+
+    # Clean markdown if present
+    cleaned = re.sub(r"```json|```", "", text).strip()
+
+    try:
+        return json.loads(cleaned)
+    except Exception:
+        return {
+            "raw_output": text,
+            "error": "Failed to parse JSON"
+        }

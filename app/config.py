@@ -1,9 +1,15 @@
 import os
-from supabase import create_client
 from dotenv import load_dotenv
+from supabase import create_client
+from google import genai
 
 load_dotenv()
 
+# Gemini
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+client = genai.Client(api_key=GEMINI_API_KEY)
+
+# Supabase factory
 def get_supabase():
     url = os.getenv("SUPABASE_URL")
     key = os.getenv("SUPABASE_KEY")

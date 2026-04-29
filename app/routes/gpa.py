@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from app.services.supabase_client import supabase
-
+from app.services.supabase_client import get_supabase
+supabase = get_supabase()
 router = APIRouter()
 
 GRADE_MAP = {

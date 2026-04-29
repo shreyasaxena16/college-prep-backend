@@ -1,4 +1,6 @@
-from app.services.supabase_client import supabase
+from app.services.supabase_client import get_supabase
+
+supabase = get_supabase()
 
 
 def submit_answer(user_id, question_id, selected_answer):
