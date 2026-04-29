@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Query
-from services.supabase_service import fetch_questions
+from app.services.supabase_service import fetch_questions
 
 
 import random
