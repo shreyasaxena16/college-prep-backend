@@ -1,31 +1,21 @@
+from app.services.supabase_service import  fetch_questions, save_questions
 from app.services.gemini_service import generate_questions
-from app.services.supabase_service import fetch_questions, save_questions
-
-THRESHOLD = 5
 
 
-def get_questions(topic: str, limit: int = 5):
+def get_questions(topic: str,subtopic: str = None, difficulty: str= None, limit: int = 5):
 
-    existing = fetch_questions(topic)
-
+    print("topic input:", topic)
+    print("subtopic input:", subtopic)
+    print("difficulty input:", difficulty)
+    existing = fetch_questions(topic,subtopic,difficulty)
+    existing_count=len(existing)
     # STEP 1: If enough questions → return DB
-    if len(existing) >= limit:
+    if existing_count >= limit:
         return existing[:limit]
-
-    # STEP 2: Not enough → generate more
-    new_questions = generate_questions(topic, count=20)
-
-    save_questions(topic, new_questions)
-
-    # STEP 3: Return fresh mix
-    updated = fetch_questions(topic)
-    return updated[:limit]
+    else:
+        return existing[:existing_count]
+    
 
 
-def refill_if_needed(topic: str):
 
-    existing = fetch_questions(topic)
 
-    if len(existing) < THRESHOLD:
-        new_questions = generate_questions(topic, count=50)
-        save_questions(topic, new_questions)

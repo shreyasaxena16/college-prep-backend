@@ -2,28 +2,72 @@ from app.config import get_supabase
 
 supabase = get_supabase()
 
-def fetch_questions(category: str, subcategory: str = None, difficulty: str = None):
+def fetch_questions(topic: str, subtopic: str = None, difficulty: str = None):
 
-    query = supabase.table("questions").select("*").eq("category", category)
+    query = supabase.table("questions").select("*").eq("topic", topic)
 
-    if subcategory:
-        query = query.eq("subcategory", subcategory)
+    if subtopic:
+        query = query.eq("subtopic", subtopic)
 
     if difficulty:
-        query = query.eq("difficulty", difficulty)
+        query = query.ilike("difficulty", difficulty)
 
+    print("difficulty input:", difficulty)
+    print("difficulty repr:", repr(difficulty))
     response = query.execute()
-
+    print("RAW DATA:", response.data)
     return response.data
 
-
-def save_questions(topic: str, questions: list):
-
+def save_questions(topic, difficulty, questions):
     for q in questions:
         supabase.table("questions").insert({
             "topic": topic,
+            "difficulty": difficulty,
             "question": q["question"],
             "options": q["options"],
-            "correct_answer": q["correct_answer"],
-            "used_count": 0
+            "correct_answer": q["answer"],
+            "explanation": q["explanation"]
         }).execute()
+
+
+
+def get_retry_question(user_id):
+    res = supabase.table("attempts") \
+        .select("question_id") \
+        .eq("user_id", user_id) \
+        .eq("is_correct", False) \
+        .limit(1) \
+        .execute()
+
+    if res.data:
+        qid = res.data[0]["question_id"]
+
+        q = supabase.table("questions") \
+            .select("*") \
+            .eq("id", qid) \
+            .execute()
+
+        return q.data[0]
+
+    return None
+
+
+#Are the below required?
+
+def get_question(user_id, topic, difficulty):
+
+    # 1. Retry incorrect
+    retry = get_retry_question(user_id)
+    if retry:
+        return retry
+
+    # 2. Fetch from DB
+    db_q = get_question_from_db(topic, difficulty)
+    if db_q:
+        supabase.table("questions").update({
+            "used_count": db_q["used_count"] + 1
+        }).eq("id", db_q["id"]).execute()
+
+        return db_q
+
+   

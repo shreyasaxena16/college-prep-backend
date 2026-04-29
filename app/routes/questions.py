@@ -9,10 +9,11 @@ router = APIRouter()
 @router.get("/questions")
 def get_questions(
     topic: str,
+    subtopic: str=None,
     difficulty: str = None,
     limit: int = 5
 ):
-    questions = fetch_questions(topic, difficulty)
+    questions = fetch_questions(topic, subtopic, difficulty)
 
     if not questions:
         return {
