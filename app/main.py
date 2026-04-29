@@ -1,5 +1,7 @@
 # main.py
 
+print("🔥 MAIN STARTED")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware 
 from app.routes.colleges import router as college_router
