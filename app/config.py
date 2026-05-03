@@ -6,8 +6,13 @@ from google import genai
 load_dotenv()
 
 # Gemini
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-client = genai.Client(api_key=GEMINI_API_KEY)
+def get_gemini_client():
+     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+     print("API KEY:", GEMINI_API_KEY)
+     if not GEMINI_API_KEY:
+        raise Exception("GEMINI_API_KEY missing")
+     return genai.Client(api_key=GEMINI_API_KEY)    
+
 
 # Supabase factory
 def get_supabase():

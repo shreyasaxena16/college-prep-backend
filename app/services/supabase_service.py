@@ -2,12 +2,12 @@ from app.config import get_supabase
 
 supabase = get_supabase()
 
-def fetch_questions(topic: str, subtopic: str = None, difficulty: str = None):
+def fetch_questions(subject: str, topic: str = None, difficulty: str = None):
 
-    query = supabase.table("questions").select("*").eq("topic", topic)
+    query = supabase.table("questions").select("*").eq("subject", subject)
 
-    if subtopic:
-        query = query.eq("subtopic", subtopic)
+    if topic:
+        query = query.eq("topic", topic)
 
     if difficulty:
         query = query.ilike("difficulty", difficulty)
@@ -18,14 +18,15 @@ def fetch_questions(topic: str, subtopic: str = None, difficulty: str = None):
     print("RAW DATA:", response.data)
     return response.data
 
-def save_questions(topic, difficulty, questions):
+def save_questions(subject,topic, difficulty, questions):
     for q in questions:
         supabase.table("questions").insert({
+            "subject": subject,
             "topic": topic,
             "difficulty": difficulty,
             "question": q["question"],
             "options": q["options"],
-            "correct_answer": q["answer"],
+            "correct_answer": q["correct_answer"],
             "explanation": q["explanation"]
         }).execute()
 
