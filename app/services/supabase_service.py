@@ -70,5 +70,19 @@ def get_question(user_id, topic, difficulty):
         }).eq("id", db_q["id"]).execute()
 
         return db_q
+    
+def get_student(user_id: str):
+    return supabase.table("students") \
+        .select("*") \
+        .eq("profile_id", user_id) \
+        .execute()
+
+
+def get_profile(user_id: str):
+    return supabase.table("profiles") \
+        .select("*") \
+        .eq("id", user_id) \
+        .single() \
+        .execute()
 
    

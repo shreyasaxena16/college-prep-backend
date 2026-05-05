@@ -4,43 +4,6 @@ supabase = get_supabase()
 
 router = APIRouter()
 
-#@router.post("/signup")
-# def signup(payload: dict):
-
-#     email = payload.get("email")
-#     password = payload.get("password")
-#     username = payload.get("username")
-
-#     # 1. Create auth user in Supabase
-#     auth = supabase.auth.sign_up({
-#         "email": email,
-#         "password": password
-#     })
-
-#     user = auth.user
-#     if not user:
-#         return {"error": "Signup failed"}
-
-#     user_id = user.id
-
-#     # 2. Create profile row
-#     supabase.table("profiles").insert({
-#         "id": user_id,
-#         "email": email,
-#         "username": username
-#     }).execute()
-
-#     # 3. Create student row (default)
-#     supabase.table("students").insert({
-#         "profile_id": user_id,
-#         "grade_level": 11
-#     }).execute()
-
-#     return {
-#         "message": "Signup successful",
-#         "user_id": user_id
-#     }
-
 @router.post("/signup")
 def signup(payload: dict):
 
@@ -73,6 +36,12 @@ def signup(payload: dict):
     }
 
     supabase.table("profiles").upsert(profile).execute()
+
+    # ✅ 3. ADD THIS BLOCK (only for students)
+    if role == "student":
+        supabase.table("students").insert({
+            "id": user_id  # keep same id for simplicity
+        }).execute()
 
     return {
         "message": "Signup successful",

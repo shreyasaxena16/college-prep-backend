@@ -5,6 +5,7 @@ from app.services.attempt_service import submit_answer
 from app.services.supabase_service import get_supabase
 import random
 import uuid
+from app.services.supabase_service import get_student, get_profile
 
 router = APIRouter(prefix="", tags=["Test"])
 
@@ -51,8 +52,12 @@ def safe_sample(pool, k):
 # -------------------------
 @router.post("/start_test")
 def start_test(req: TestStartRequest):
-
+    
     supabase = get_supabase()
+    student = get_student(req.user_id)
+
+    if not student.data:
+        return {"error": "Students only"}
 
     # 1. Create session
     session = supabase.table("test_sessions").insert({
