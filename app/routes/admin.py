@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from app.services.gemini_service import generate_questions
 from app.services.supabase_service import save_questions
 from pydantic import BaseModel
+from typing import Optional
 
 router = APIRouter()
 
@@ -10,7 +11,7 @@ class GenerateRequest(BaseModel):
     subject: str
     difficulty: str = "medium"
     count: int = 10
-    topic: str | None = None
+    topic: Optional[str] = None
 
 @router.post("/generate")
 # def admin_generate(subject: str, topic:str=None, count: int = 50,difficulty: str='medium'):

@@ -14,6 +14,7 @@ from app.routes.test import router as test_router
 from app.routes.admin import router as admin_router
 from app.routes.questions import router as questions_router
 from app.routes.student import router as student_router
+from app.routes.reviews import router as reviews_router
 
 
 
@@ -92,7 +93,13 @@ try:
     print("✔ student imported", flush=True)
 except Exception as e:
     print("❌ student import failed:", e, flush=True)
-    raise   
+    raise  
+try:
+    app.include_router(reviews_router, prefix="/api/reviews")
+    print("✔ review imported", flush=True)
+except Exception as e:
+    print("❌ review import failed:", e, flush=True)
+    raise 
 
 @app.get("/")
 def root():
