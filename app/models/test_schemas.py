@@ -22,6 +22,8 @@ class TestStartRequest(BaseModel):
     user_id: str
     subjects: List[str]
     total_questions: int = 20
+    sat_range: str = "1000-1200"
+    include_previous_correct: bool = True
     difficulty_mix: DifficultyMix
 
 class AnswerItem(BaseModel):
