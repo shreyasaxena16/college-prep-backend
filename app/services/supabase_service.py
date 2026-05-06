@@ -24,6 +24,7 @@ def save_questions(subject,topic, difficulty, questions):
             "subject": subject,
             "topic": topic,
             "difficulty": difficulty,
+            "sat_band": q.get("sat_band") ,
             "question": q["question"],
             "options": q["options"],
             "correct_answer": q["correct_answer"],

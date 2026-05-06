@@ -54,9 +54,13 @@ def safe_sample(pool, k):
 def start_test(req: TestStartRequest):
     
     supabase = get_supabase()
-    student = get_student(req.user_id)
+    profile = supabase.table("profiles") \
+    .select("*") \
+    .eq("id", req.user_id) \
+    .single() \
+    .execute().data
 
-    if not student.data:
+    if not profile or profile.get("role") != "student":
         return {"error": "Students only"}
 
     # 1. Create session

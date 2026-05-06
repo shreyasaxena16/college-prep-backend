@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 from google import genai
 
-load_dotenv()
+load_dotenv(override=True)
 
 # Gemini
 def get_gemini_client():

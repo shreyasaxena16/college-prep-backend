@@ -1,50 +1,54 @@
-from fastapi import APIRouter
+from fastapi import APIRouter,HTTPException
 from app.services.gemini_service import generate_questions
 from app.services.supabase_service import save_questions
 from pydantic import BaseModel
+from typing import Dict
 
 router = APIRouter()
 
-
 class GenerateRequest(BaseModel):
     subject: str
-    difficulty: str = "medium"
-    count: int = 10
-    topic: str | None = None
-
-@router.post("/generate")
-# def admin_generate(subject: str, topic:str=None, count: int = 50,difficulty: str='medium'):
-#     subject = subject.capitalize()
-#     difficulty = difficulty.lower()
-#     if subject not in ["Math", "English"]:
-#         return {"error": "Invalid subject"}
-
-#     if difficulty not in ["easy", "medium", "hard"]:
-#         return {"error": "Invalid difficulty"}
-    
-#     questions = generate_questions(subject, topic, count,difficulty)
-#     save_questions(subject, topic, difficulty, questions)
-
-#     return {
-#         "status": "success",
-#         "Subject": subject,
-#         "generated": count
-#     }
+    topic: str
+    count: int
+    sat_distribution: Dict[str, int]
+    difficulty: str
 
 @router.post("/generate")
 def admin_generate(req: GenerateRequest):
 
-    questions = generate_questions(
-        req.topic or req.subject,
-        req.count,
-        req.difficulty
-    )
+    # ✅ Validate distribution
+    total = sum(req.sat_distribution.values())
+    if total != req.count:
+        raise HTTPException(
+            status_code=400,
+            detail="Distribution must sum to total count"
+        )
 
-    save_questions(req.subject, req.topic, req.difficulty, questions)
+    all_questions = []
+
+    # ✅ Generate per SAT band
+    questions = generate_questions(
+            subject=req.subject,
+            topic=req.topic,
+            count=req.count,
+            sat_distribution=req.sat_distribution,
+            difficulty=req.difficulty
+        )
+
+    all_questions.extend(questions)
+
+    # ✅ Save (unchanged structure)
+    
+    save_questions(
+        subject=req.subject,
+        topic=req.topic,
+        difficulty=req.difficulty,
+        questions=all_questions
+    )
 
     return {
         "status": "success",
-        "generated": len(questions)
+        "generated": len(all_questions)
     }
 
 @router.get("/stats")
