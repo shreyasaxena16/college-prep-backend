@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from postgrest.exceptions import APIError
 from app.services.supabase_client import get_supabase
 
 router = APIRouter()
@@ -13,7 +14,10 @@ def create_todo(payload: dict):
     if not student_id or not title:
         raise HTTPException(status_code=400, detail="student_id and title required")
 
-    response = supabase.table("todos").insert(payload).execute()
+    try:
+        response = supabase.table("todos").insert(payload).execute()
+    except APIError as e:
+        raise HTTPException(status_code=400, detail=e.message)
 
     return response.data
 
@@ -21,9 +25,12 @@ def create_todo(payload: dict):
 @router.get("/{student_id}")
 def get_todos(student_id: str):
 
-    todos = supabase.table("todos") \
-        .select("*") \
-        .eq("student_id", student_id) \
-        .execute()
+    try:
+        todos = supabase.table("todos") \
+            .select("*") \
+            .eq("student_id", student_id) \
+            .execute()
+    except APIError as e:
+        raise HTTPException(status_code=400, detail=e.message)
 
     return todos.data or []

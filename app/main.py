@@ -24,6 +24,8 @@ app = FastAPI()
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
    # "http://192.168.1.134:4173",
     "localhost:8000",
     "https://college-preparation.netlify.app",
