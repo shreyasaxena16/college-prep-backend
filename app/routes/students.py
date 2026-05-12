@@ -21,3 +21,13 @@ def get_student(profile_id: str):
         .select("*") \
         .eq("profile_id", profile_id) \
         .execute().data
+
+@router.get("/profile/{profile_id}")
+def get_student_by_profile(profile_id: str):
+    response = supabase.table("students") \
+        .select("*") \
+        .eq("profile_id", profile_id) \
+        .single() \
+        .execute()
+
+    return response.data
