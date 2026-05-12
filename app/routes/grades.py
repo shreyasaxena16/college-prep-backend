@@ -6,6 +6,8 @@ router = APIRouter()
 
 @router.post("/")
 def add_grade(payload: dict):
+    if not payload.get("subject_id"):
+        return {"error": "subject_id is required"}, 400
     clean = {
         "student_id": payload["student_id"],
         "subject_id": payload.get("subject_id"),

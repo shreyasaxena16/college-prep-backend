@@ -15,6 +15,7 @@ from app.routes.admin import router as admin_router
 from app.routes.questions import router as questions_router
 from app.routes.student import router as student_router
 from app.routes.reviews import router as reviews_router
+from app.routes.student_subject import router as student_subject_router
 
 
 
@@ -22,7 +23,8 @@ app = FastAPI()
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "http://192.168.1.134:4173",
+   # "http://192.168.1.134:4173",
+    "localhost:8000",
     "https://college-preparation.netlify.app",
 ]
 
@@ -33,6 +35,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 try:
@@ -100,7 +103,16 @@ try:
     print("✔ review imported", flush=True)
 except Exception as e:
     print("❌ review import failed:", e, flush=True)
-    raise 
+    raise
+
+try:
+    app.include_router(student_subject_router, prefix="/api/student_subjects")
+    print("✔ student_subjects imported", flush=True)
+except Exception as e:
+    print("❌ student_subjects import failed:", e, flush=True)
+    raise
+
+   
 
 @app.get("/")
 def root():

@@ -11,12 +11,6 @@ GRADE_MAP = {
     "F": 0.0
 }
 
-LEVEL_BONUS = {
-    "OnLevel": 0.0,
-    "Advanced": 0.5,
-    "AP": 1.0
-}
-
 
 @router.get("/{profile_id}")
 def calculate_gpa(profile_id: str):
@@ -46,18 +40,19 @@ def calculate_gpa(profile_id: str):
 
         grade_value = (g.get("grade") or "").strip().upper()
         credits = g.get("credits") or 1
-        course_type = (g.get("course_type") or "regular").lower()
+        course_type = (g.get("course_type") or "on_level").lower()
 
         if grade_value not in GRADE_MAP:
             continue
 
         base = GRADE_MAP[grade_value]
 
-        bonus = 0
-        if course_type == "honors":
+        bonus = 0.0
+
+        if course_type == "advanced":
             bonus = 0.5
         elif course_type == "ap":
-            bonus = 1.0
+            bonus = 1.0    
 
         total_points += (base + bonus) * credits
         total_credits += credits
@@ -70,8 +65,9 @@ def calculate_gpa(profile_id: str):
     return {
         "profile_id": profile_id,
         "student_id": student_id,
-        "gpa": round(gpa, 2)
-}
+        "gpa": round(gpa, 2),
+        "weighted": True
+    }   
 # def calculate_gpa(profile_id: str):
 
 #     # 🔥 STEP 1: Get student using profile_id
