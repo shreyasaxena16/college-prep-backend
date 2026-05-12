@@ -24,10 +24,21 @@ def get_student(profile_id: str):
 
 @router.get("/profile/{profile_id}")
 def get_student_by_profile(profile_id: str):
-    response = supabase.table("students") \
+
+    by_profile = supabase.table("students") \
         .select("*") \
         .eq("profile_id", profile_id) \
-        .single() \
         .execute()
 
-    return response.data
+    if by_profile.data:
+        return by_profile.data[0]
+
+    by_id = supabase.table("students") \
+        .select("*") \
+        .eq("id", profile_id) \
+        .execute()
+
+    if by_id.data:
+        return by_id.data[0]
+
+    return None
