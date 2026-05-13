@@ -213,6 +213,60 @@ def copy_template_tasks_to_todos(
     return response.data or []
 
 
+def get_or_create_plan_template(sat_date: str, target_score_range: str):
+    duration_weeks = calculate_duration_weeks(sat_date)
+    current_date = date.today().isoformat()
+    template = get_cached_plan(duration_weeks, target_score_range)
+    generated = False
+
+    if template:
+        return template, generated
+
+    plan = generate_sat_todo_plan(
+        current_date=current_date,
+        sat_date=sat_date,
+        target_score_range=target_score_range,
+    )
+
+    if isinstance(plan, dict) and plan.get("error"):
+        raise HTTPException(status_code=500, detail=plan["error"])
+
+    tasks = plan.get("tasks") if isinstance(plan, dict) else None
+    if not tasks:
+        raise HTTPException(status_code=500, detail="Gemini returned no tasks")
+
+    template = create_plan_template(
+        plan=plan,
+        duration_weeks=duration_weeks,
+        target_score_range=target_score_range,
+        current_date=current_date,
+    )
+
+    return template, True
+
+
+def preview_template_tasks(template_id: str):
+    plan_start_date = date.today()
+    tasks = []
+
+    for task in get_template_tasks(template_id):
+        tasks.append({
+            "title": task.get("title"),
+            "description": format_task_description(task),
+            "start_date": date_from_offset(
+                plan_start_date,
+                task.get("relative_start_day"),
+            ),
+            "due_date": date_from_offset(
+                plan_start_date,
+                task.get("relative_due_day"),
+            ),
+            "reminder_enabled": bool(task.get("reminder_enabled", True)),
+        })
+
+    return tasks
+
+
 @router.post("/")
 def create_todo(payload: dict):
     student_id = payload.get("student_id") or payload.get("profile_id")
@@ -244,34 +298,12 @@ def generate_todo_plan(payload: dict):
         )
 
     resolved_student_id = resolve_student_id(student_id)
-    duration_weeks = calculate_duration_weeks(sat_date)
-    current_date = date.today().isoformat()
 
     try:
-        template = get_cached_plan(duration_weeks, target_score_range)
-
-        generated = False
-        if not template:
-            plan = generate_sat_todo_plan(
-                current_date=current_date,
-                sat_date=sat_date,
-                target_score_range=target_score_range,
-            )
-
-            if isinstance(plan, dict) and plan.get("error"):
-                raise HTTPException(status_code=500, detail=plan["error"])
-
-            tasks = plan.get("tasks") if isinstance(plan, dict) else None
-            if not tasks:
-                raise HTTPException(status_code=500, detail="Gemini returned no tasks")
-
-            template = create_plan_template(
-                plan=plan,
-                duration_weeks=duration_weeks,
-                target_score_range=target_score_range,
-                current_date=current_date,
-            )
-            generated = True
+        template, generated = get_or_create_plan_template(
+            sat_date=sat_date,
+            target_score_range=target_score_range,
+        )
 
         student_plan = get_student_plan(
             student_id=resolved_student_id,
@@ -300,6 +332,32 @@ def generate_todo_plan(payload: dict):
         "generated": generated,
         "inserted": len(copied_tasks),
         "tasks": copied_tasks,
+    }
+
+
+@router.post("/preview-plan")
+def preview_todo_plan(payload: dict):
+    sat_date = payload.get("sat_date")
+    target_score_range = payload.get("target_score_range")
+
+    if not sat_date or not target_score_range:
+        raise HTTPException(
+            status_code=400,
+            detail="sat_date and target_score_range are required"
+        )
+
+    try:
+        template, generated = get_or_create_plan_template(
+            sat_date=sat_date,
+            target_score_range=target_score_range,
+        )
+    except APIError as e:
+        raise HTTPException(status_code=400, detail=e.message)
+
+    return {
+        "template": template,
+        "generated": generated,
+        "tasks": preview_template_tasks(template["id"]),
     }
 
 
