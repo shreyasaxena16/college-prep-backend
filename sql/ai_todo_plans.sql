@@ -16,12 +16,24 @@ create table if not exists public.sat_prep_plan_template_tasks (
   sort_order integer not null default 0,
   title text not null,
   description text,
-  relative_start_date date,
-  relative_due_date date,
+  relative_start_day integer,
+  relative_due_day integer,
   reminder_enabled boolean not null default true,
   subtasks jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now()
 );
+
+alter table public.sat_prep_plan_template_tasks
+add column if not exists relative_start_day integer;
+
+alter table public.sat_prep_plan_template_tasks
+add column if not exists relative_due_day integer;
+
+alter table public.sat_prep_plan_template_tasks
+drop column if exists relative_start_date;
+
+alter table public.sat_prep_plan_template_tasks
+drop column if exists relative_due_date;
 
 create table if not exists public.student_sat_prep_plans (
   id uuid primary key default gen_random_uuid(),

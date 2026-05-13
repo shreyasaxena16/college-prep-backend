@@ -56,6 +56,23 @@ def calculate_duration_weeks(sat_date: str):
     return max(round(days / 7), 1)
 
 
+def calculate_day_offset(task_date: str, current_date: str):
+    if not task_date:
+        return None
+
+    task_day = datetime.strptime(task_date, "%Y-%m-%d").date()
+    plan_start = datetime.strptime(current_date, "%Y-%m-%d").date()
+    return max((task_day - plan_start).days, 0)
+
+
+def date_from_offset(start_date: date, offset):
+    if offset is None:
+        return None
+
+    from datetime import timedelta
+    return (start_date + timedelta(days=int(offset))).isoformat()
+
+
 def build_plan_title(duration_weeks: int, target_score_range: str):
     return f"{duration_weeks} week {target_score_range} plan"
 
@@ -72,7 +89,12 @@ def get_cached_plan(duration_weeks: int, target_score_range: str):
     return plans[0] if plans else None
 
 
-def create_plan_template(plan: dict, duration_weeks: int, target_score_range: str):
+def create_plan_template(
+    plan: dict,
+    duration_weeks: int,
+    target_score_range: str,
+    current_date: str,
+):
     title = plan.get("plan_title") or build_plan_title(
         duration_weeks,
         target_score_range,
@@ -98,8 +120,14 @@ def create_plan_template(plan: dict, duration_weeks: int, target_score_range: st
             "sort_order": index,
             "title": title,
             "description": task.get("description"),
-            "relative_start_date": task.get("start_date"),
-            "relative_due_date": task.get("due_date"),
+            "relative_start_day": calculate_day_offset(
+                task.get("start_date"),
+                current_date,
+            ),
+            "relative_due_day": calculate_day_offset(
+                task.get("due_date"),
+                current_date,
+            ),
             "reminder_enabled": bool(task.get("reminder_enabled", True)),
             "subtasks": task.get("subtasks") or [],
         })
@@ -145,7 +173,11 @@ def create_student_plan(student_id: str, template: dict, sat_date: str):
     return response.data[0]
 
 
-def copy_template_tasks_to_todos(student_id: str, student_plan: dict, template_id: str):
+def copy_template_tasks_to_todos(
+    student_id: str,
+    student_plan: dict,
+    template_id: str,
+):
     existing = supabase.table("todos") \
         .select("id") \
         .eq("student_id", student_id) \
@@ -156,14 +188,21 @@ def copy_template_tasks_to_todos(student_id: str, student_plan: dict, template_i
         return []
 
     rows = []
+    plan_start_date = date.today()
     for task in get_template_tasks(template_id):
         rows.append({
             "student_id": student_id,
             "plan_id": student_plan["id"],
             "title": task.get("title"),
             "description": format_task_description(task),
-            "start_date": task.get("relative_start_date") or None,
-            "due_date": task.get("relative_due_date") or None,
+            "start_date": date_from_offset(
+                plan_start_date,
+                task.get("relative_start_day"),
+            ),
+            "due_date": date_from_offset(
+                plan_start_date,
+                task.get("relative_due_day"),
+            ),
             "reminder_enabled": bool(task.get("reminder_enabled", True)),
         })
 
@@ -206,6 +245,7 @@ def generate_todo_plan(payload: dict):
 
     resolved_student_id = resolve_student_id(student_id)
     duration_weeks = calculate_duration_weeks(sat_date)
+    current_date = date.today().isoformat()
 
     try:
         template = get_cached_plan(duration_weeks, target_score_range)
@@ -213,7 +253,7 @@ def generate_todo_plan(payload: dict):
         generated = False
         if not template:
             plan = generate_sat_todo_plan(
-                current_date=date.today().isoformat(),
+                current_date=current_date,
                 sat_date=sat_date,
                 target_score_range=target_score_range,
             )
@@ -229,6 +269,7 @@ def generate_todo_plan(payload: dict):
                 plan=plan,
                 duration_weeks=duration_weeks,
                 target_score_range=target_score_range,
+                current_date=current_date,
             )
             generated = True
 
