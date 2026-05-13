@@ -8,6 +8,10 @@ router = APIRouter()
 def add_grade(payload: dict):
     if not payload.get("subject_id"):
         return {"error": "subject_id is required"}, 400
+    if payload.get("year") not in [9,10,11,12]:
+        return {"error": "Invalid year"}, 400
+    if payload.get("quarter") not in [1,2,3,4]:
+        return {"error": "Invalid quarter"}, 400
     clean = {
         "student_id": payload["student_id"],
         "subject_id": payload.get("subject_id"),
@@ -19,7 +23,18 @@ def add_grade(payload: dict):
     }   
     print("PAYLOAD:", payload)
     print("CLEAN:", clean)
-    response = supabase.table("grades").insert(clean).execute()
+    #Update existing if subject+year+qtr match, otherwise insert new
+    existing = supabase.table("grades") \
+    .select("id") \
+    .eq("student_id", payload["student_id"]) \
+    .eq("subject_id", payload["subject_id"]) \
+    .eq("year", payload["year"]) \
+    .eq("quarter", payload["quarter"]) \
+    .execute().data
+    if existing:
+        response = supabase.table("grades").update(clean).eq("id", existing[0]["id"]).execute()
+    else:
+        response = supabase.table("grades").insert(clean).execute()
     return response.data
 
 

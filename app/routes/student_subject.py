@@ -44,3 +44,12 @@ def save_student_subjects(payload: dict):
         "message": "student subjects saved",
         "data": inserted
     }
+
+@router.get("/{student_id}")
+def get_student_subjects(student_id: str):
+    response = supabase.table("student_subjects") \
+        .select("*, subjects(subject_name)") \
+        .eq("student_id", student_id) \
+        .execute()
+
+    return response.data
