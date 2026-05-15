@@ -29,6 +29,7 @@ origins = [
    # "http://192.168.1.134:4173",
     "localhost:8000",
     "https://college-preparation.netlify.app",
+    "https://college-prep-frontend.shreyasaxena109.workers.dev"
 ]
 
 app.add_middleware(
