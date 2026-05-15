@@ -29,9 +29,9 @@ def signup(payload: dict):
     # 2. Create profile in your table
     profile = {
         "id": user.id,  # link to auth user
-        "first_name": first_name,
-        "last_name": last_name,
-        "username": f"{first_name}_{last_name}".lower(),
+        "firstname": first_name,
+        "lastname": last_name,
+        "username": email,
         "role": role
     }
 
