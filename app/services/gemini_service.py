@@ -48,8 +48,8 @@ Each object MUST follow this schema:
   "options": ["string", "string", "string", "string"],
   "correct_answer": "A | B | C | D",
   "explanation": "string",
-  "category": "{category}",
-  "subcategory": "{subcategory}",
+  "subject": "{subject}",
+  "topic": "{topic}",
   "sat_band": "1000-1200 | 1200-1400 | 1400+",
   "difficulty": "easy | medium | hard"
 }}

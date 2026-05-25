@@ -16,6 +16,7 @@ from app.routes.questions import router as questions_router
 from app.routes.student import router as student_router
 from app.routes.reviews import router as reviews_router
 from app.routes.student_subject import router as student_subject_router
+from app.routes.bunny import router as bunny_router
 from app.routes import todos
 
 
@@ -121,6 +122,13 @@ try:
     print("✔ todos list imported", flush=True)
 except Exception as e:
     print("❌ todos list import failed:", e, flush=True)
+    raise
+
+try:
+    app.include_router(bunny_router, prefix="/api/bunny")
+    print("✔ bunny imported", flush=True)
+except Exception as e:
+    print("❌ bunny import failed:", e, flush=True)
     raise
    
 
