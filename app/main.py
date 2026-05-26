@@ -29,9 +29,10 @@ origins = [
     "http://localhost:5174",
     "http://127.0.0.1:5174",
    # "http://192.168.1.134:4173",
-    "localhost:8000",
-    "https://college-preparation.netlify.app",
-    "https://college-prep-frontend.shreyasaxena109.workers.dev"
+    "https://localhost:8000",
+    #"https://college-preparation.netlify.app",
+    #"https://college-prep-frontend.shreyasaxena109.workers.dev"
+    "https://*.prepbunny.pages.dev",
 ]
 
 app.add_middleware(
