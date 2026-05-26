@@ -1,6 +1,6 @@
-# main.py
-
 print("🔥 MAIN STARTED")
+
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware 
@@ -24,6 +24,7 @@ from app.routes import todos
 
 app = FastAPI()
 origins = [
+    #"http://localhost:5173",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:5174",
@@ -31,13 +32,22 @@ origins = [
    # "http://192.168.1.134:4173",
     "https://localhost:8000",
     #"https://college-preparation.netlify.app",
-    #"https://college-prep-frontend.shreyasaxena109.workers.dev"
-    "https://*.prepbunny.pages.dev",
+    "https://college-prep-frontend.shreyasaxena109.workers.dev",
 ]
+origins.extend(
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+)
+origin_regex = os.getenv(
+    "ALLOWED_ORIGIN_REGEX",
+    r"https://([a-z0-9-]+\.)*(pages\.dev|workers\.dev)",
+)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
