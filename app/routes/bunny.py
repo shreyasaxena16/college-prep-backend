@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from requests import RequestException
 
+from app.services.bunny_student_context import build_bunny_context
 from app.services.ollama_service import ask_ollama
 
 
@@ -17,9 +18,10 @@ class BunnyChatRequest(BaseModel):
 
 @router.post("/chat")
 def chat_with_bunny(payload: BunnyChatRequest):
-    print("🔥 CONTEXT RECEIVED:", payload.context, flush=True)
+    context = build_bunny_context(payload.context)
+    print("🔥 CONTEXT RECEIVED:", context, flush=True)
     try:
-        return ask_ollama(payload.message, payload.context)
+        return ask_ollama(payload.message, context)
     except RequestException as exc:
         raise HTTPException(
             status_code=503,

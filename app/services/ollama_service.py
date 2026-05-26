@@ -18,6 +18,9 @@ Rules:
   and give one tiny practice tip.
 - Be playful, but never distracting during serious academic help.
 - Do not claim to know private student data unless it was included in the prompt.
+- If auth_status is guest, give general site guidance and preparation advice.
+- If auth_status is student, use the provided GPA, test history, weak areas,
+  and current page/question context to personalize the answer.
 - If asked to generate full SAT tests or large question banks, say the test
   generator handles that separately.
 """
@@ -48,14 +51,18 @@ def ask_ollama(prompt: str, context: dict[str, Any] | None = None) -> dict[str, 
     rag_context_text = ""
 
     try:
-        chunks = retrieve_chunks(prompt)
+        chunks = retrieve_chunks(
+            prompt,
+            subject=context.get("subject") if context else None,
+            topic=context.get("topic") if context else None,
+        )
 
         if chunks:
             rag_context_text = "\n\nSAT Knowledge Context:\n" + "\n\n".join(
-                [c["chunk_text"] for c in chunks]
+                [c.get("chunk_text") or c.get("content") or "" for c in chunks]
             )
             print("RAG CHUNKS USED:", len(chunks))
-            print([c["topic"] for c in chunks])
+            print([c.get("topic") for c in chunks])
 
     except Exception as e:
         rag_context_text = ""

@@ -1,10 +1,12 @@
--- AI memory + RAG/vector retrieval support.
--- Assumes Supabase/Postgres. Adjust vector(768) if your embedding model
--- produces a different dimension. nomic-embed-text returns 768.
+-- RAG ingestion pipeline tables/functions for Ollama nomic-embed-text.
+-- nomic-embed-text returns 768-dimensional embeddings.
 
 create extension if not exists vector;
 
--- Reuse the existing questions table for SAT question retrieval.
+drop index if exists public.idx_questions_embedding_hnsw;
+drop index if exists public.idx_ai_memories_embedding_hnsw;
+drop index if exists public.idx_sat_knowledge_chunks_embedding_hnsw;
+
 alter table public.questions
 add column if not exists embedding vector(768);
 
@@ -14,40 +16,17 @@ add column if not exists embedding_model text;
 alter table public.questions
 add column if not exists embedding_updated_at timestamptz;
 
-create index if not exists idx_questions_embedding_hnsw
-on public.questions
-using hnsw (embedding vector_cosine_ops);
-
-create index if not exists idx_questions_subject_topic
-on public.questions(subject, topic);
-
--- Durable AI memory about a user/student. This is not chat history; store only
--- compact facts, preferences, goals, weaknesses, and tutoring signals worth reusing.
 create table if not exists public.ai_memories (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
   student_id uuid references public.students(id) on delete cascade,
   memory_type text not null check (
-    memory_type in (
-      'preference',
-      'goal',
-      'weakness',
-      'strength',
-      'strategy',
-      'context'
-    )
+    memory_type in ('preference', 'goal', 'weakness', 'strength', 'strategy', 'context')
   ),
   content text not null,
   metadata jsonb not null default '{}'::jsonb,
   source_type text check (
-    source_type in (
-      'chat',
-      'test_session',
-      'test_answer',
-      'question',
-      'todo',
-      'manual'
-    )
+    source_type in ('chat', 'test_session', 'test_answer', 'question', 'todo', 'manual')
   ),
   source_id text,
   importance smallint not null default 3 check (importance between 1 and 5),
@@ -59,24 +38,11 @@ create table if not exists public.ai_memories (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists idx_ai_memories_user_type
-on public.ai_memories(user_id, memory_type);
-
-create index if not exists idx_ai_memories_student
-on public.ai_memories(student_id);
-
-create index if not exists idx_ai_memories_embedding_hnsw
-on public.ai_memories
-using hnsw (embedding vector_cosine_ops);
-
--- Uploaded SAT knowledge sources: one row per uploaded file/URL/manual corpus.
 create table if not exists public.sat_knowledge_sources (
   id uuid primary key default gen_random_uuid(),
   uploaded_by uuid references public.profiles(id) on delete set null,
   title text not null,
-  source_type text not null default 'upload' check (
-    source_type in ('upload', 'url', 'manual')
-  ),
+  source_type text not null default 'upload' check (source_type in ('upload', 'url', 'manual')),
   file_name text,
   file_mime_type text,
   storage_bucket text,
@@ -90,10 +56,6 @@ create table if not exists public.sat_knowledge_sources (
   unique (storage_bucket, storage_path)
 );
 
-create index if not exists idx_sat_knowledge_sources_subject_topic
-on public.sat_knowledge_sources(subject, topic);
-
--- Searchable chunks from uploaded SAT knowledge.
 create table if not exists public.sat_knowledge_chunks (
   id uuid primary key default gen_random_uuid(),
   source_id uuid not null references public.sat_knowledge_sources(id) on delete cascade,
@@ -111,50 +73,77 @@ create table if not exists public.sat_knowledge_chunks (
   unique (source_id, chunk_index)
 );
 
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'questions'
+      and column_name = 'embedding'
+      and udt_name = 'vector'
+  ) then
+    alter table public.questions
+    alter column embedding type vector(768)
+    using null;
+  end if;
+
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'ai_memories'
+      and column_name = 'embedding'
+      and udt_name = 'vector'
+  ) then
+    alter table public.ai_memories
+    alter column embedding type vector(768)
+    using null;
+  end if;
+
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'sat_knowledge_chunks'
+      and column_name = 'embedding'
+      and udt_name = 'vector'
+  ) then
+    alter table public.sat_knowledge_chunks
+    alter column embedding drop not null;
+
+    alter table public.sat_knowledge_chunks
+    alter column embedding type vector(768)
+    using null;
+  end if;
+end $$;
+
+create index if not exists idx_questions_subject_topic
+on public.questions(subject, topic);
+
+create index if not exists idx_ai_memories_user_type
+on public.ai_memories(user_id, memory_type);
+
+create index if not exists idx_ai_memories_student
+on public.ai_memories(student_id);
+
+create index if not exists idx_sat_knowledge_sources_subject_topic
+on public.sat_knowledge_sources(subject, topic);
+
 create index if not exists idx_sat_knowledge_chunks_source
 on public.sat_knowledge_chunks(source_id, chunk_index);
 
 create index if not exists idx_sat_knowledge_chunks_subject_topic
 on public.sat_knowledge_chunks(subject, topic);
 
+create index if not exists idx_questions_embedding_hnsw
+on public.questions
+using hnsw (embedding vector_cosine_ops);
+
+create index if not exists idx_ai_memories_embedding_hnsw
+on public.ai_memories
+using hnsw (embedding vector_cosine_ops);
+
 create index if not exists idx_sat_knowledge_chunks_embedding_hnsw
 on public.sat_knowledge_chunks
 using hnsw (embedding vector_cosine_ops);
-
--- Vector search helpers for Supabase RPC calls.
-create or replace function public.match_questions(
-  query_embedding vector(768),
-  match_count integer default 10,
-  filter_subject text default null,
-  filter_topic text default null
-)
-returns table (
-  id text,
-  question text,
-  subject text,
-  topic text,
-  difficulty text,
-  sat_band text,
-  similarity double precision
-)
-language sql
-stable
-as $$
-  select
-    q.id::text,
-    q.question,
-    q.subject,
-    q.topic,
-    q.difficulty,
-    q.sat_band,
-    1 - (q.embedding <=> query_embedding) as similarity
-  from public.questions q
-  where q.embedding is not null
-    and (filter_subject is null or q.subject = filter_subject)
-    and (filter_topic is null or q.topic = filter_topic)
-  order by q.embedding <=> query_embedding
-  limit match_count;
-$$;
 
 create or replace function public.match_sat_knowledge(
   query_embedding vector(768),
